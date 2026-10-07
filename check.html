@@ -1,0 +1,28 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فحص PWA</title>
+<style>body{font:15px -apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:18px;background:#faf9f5;color:#141413}h1{font-size:18px}
+.r{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;margin:6px 0;border-radius:10px;background:#fff;border:1px solid #e5e2d8;direction:ltr}
+.ok{color:#15803d}.no{color:#b91c1c}.w{color:#a16207}#s{margin:12px 0;font-weight:600}a{color:#2563eb}</style></head><body>
+<h1>فحص ملفات PWA</h1><div id="s">جارٍ الفحص…</div><div id="o"></div><p><a href="index.html">فتح التطبيق</a></p>
+<script>
+(async function(){
+var files=['index.html','manifest.webmanifest','sw.js','storage.js','icon-192.png','icon-512.png','maskable-192.png','maskable-512.png','apple-touch-icon.png','favicon-32.png'];
+var o=document.getElementById('o'),bad=0;
+function row(n,st,c){if(c==='no')bad++;var d=document.createElement('div');d.className='r';d.innerHTML='<span>'+n+'</span><span class="'+c+'">'+st+'</span>';o.appendChild(d);}
+for(var f of files){try{var r=await fetch(f,{cache:'no-store'});r.ok?row(f,'موجود ✓','ok'):row(f,'غير موجود ✗ ('+r.status+')','no');}catch(e){row(f,'خطأ ✗','no');}}
+try{var m=await (await fetch('manifest.webmanifest',{cache:'no-store'})).json();var miss=[];
+['name','short_name','start_url','scope','display','icons'].forEach(function(k){if(!m[k])miss.push(k)});
+if(m.display!=='standalone')miss.push('display≠standalone');
+var sz={};(m.icons||[]).forEach(function(i){sz[i.sizes]=1});if(!sz['192x192']||!sz['512x512'])miss.push('icons 192/512');
+for(var i of (m.icons||[])){try{var x=await fetch(i.src,{cache:'no-store'});if(!x.ok)miss.push(i.src)}catch(e){miss.push(i.src)}}
+miss.length?row('manifest','ناقص: '+miss.join(', '),'no'):row('manifest','صالح ✓','ok');}catch(e){row('manifest','JSON غير صالح ✗','no');}
+if('serviceWorker' in navigator){try{var reg=await navigator.serviceWorker.getRegistration('./');
+if(!reg){reg=await navigator.serviceWorker.register('sw.js');}
+await navigator.serviceWorker.ready;row('Service Worker','مسجّل ✓ ('+(reg.active?'active':'installing')+')','ok');
+var ks=await caches.keys();var n=0;for(var k of ks){n+=(await (await caches.open(k)).keys()).length}
+row('الكاش','✓ '+n+' ملف','ok');}catch(e){row('Service Worker','فشل ✗ '+e.message,'no');}}else row('Service Worker','غير مدعوم ✗','no');
+row('وضع التثبيت',matchMedia('(display-mode: standalone)').matches?'يعمل كتطبيق ✓':'متصفح (عادي)','w');
+try{var p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;row('تخزين دائم',p?'مفعّل ✓':'لم يُمنح بعد','w');}catch(e){}
+row('IndexedDB',window.indexedDB?'متاح ✓':'غير متاح ✗',window.indexedDB?'ok':'no');
+var s=document.getElementById('s');s.textContent=bad?'يوجد '+bad+' مشكلة ✗':'كل شيء سليم ✓';s.className=bad?'no':'ok';
+})();
+</script></body></html>
